@@ -238,7 +238,7 @@ class FileStack:
         return df_list, df_map
 
 
-    def stack(self, df_indices=None, cols=None, agg_cols=None, agg_funcs=['count'], filter_dict=None, **pd_concat_kwargs):
+    def stack(self, df_indices=None, cols=[], agg_cols=[], agg_funcs=['count'], filter_dict=None, **pd_concat_kwargs):
         """
         Returns concatenated/stacked dataframe from list of dataframes of arbitrary length,
         with optional grouping and filtering.
@@ -265,10 +265,10 @@ class FileStack:
         df_list = df_list[df_indices] if df_indices is not None else df_list
         
         try:
-            len(cols)
+            len(cols + agg_cols)
 
         except:
-            print("Must supply a list of shared columns (\"cols\") to be stacked.")
+            print("Must supply a list of shared columns (\"cols\") to be stacked, or \"agg_cols\" if a scalar aggregate value should be returned.")
 
         else:
             # create placeholder df
@@ -306,10 +306,14 @@ class FileStack:
                 # concat stacked_df with new df from df_list, also passing kwargs
                 stacked_df = pd.concat([stacked_df, df], **pd_concat_kwargs)
 
-            if agg_cols:
+            if agg_cols and cols:
 
                 stacked_df = stacked_df.groupby(cols)[agg_cols].agg(agg_funcs).reset_index()
 
                 stacked_df.columns = stacked_df.columns.map(lambda x: '_'.join([str(i) for i in x]).rstrip('_'))
+
+            if agg_cols and not cols:
+    
+                stacked_df = stacked_df[agg_cols].agg(agg_funcs).reset_index()
 
             return stacked_df
